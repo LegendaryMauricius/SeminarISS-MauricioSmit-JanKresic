@@ -5,26 +5,38 @@ using UnityEngine;
 public class missileController : MonoBehaviour
 {
     public GameObject myExplosion;
+
     private Rigidbody rigidbody;
+    private AudioSource sound;
 
     float speed = 7;
     float rotateSpeed = 3.1415f / 5;
-    bool launched = true;
+    bool launched = false;
 
     // Start is called before the first frame update
     void Start()
     {
         rigidbody = GetComponent<Rigidbody>();
+        sound = gameObject.GetComponent<AudioSource>();
 
         speed = 7;
         rotateSpeed = 3.1415f / 2;
-        launched = true;
-        transform.position = new Vector3(Random.Range(-5, 5), 0, Random.Range(-5, 5));
+        launched = false;
+        transform.position = new Vector3(Random.Range(-15, 15), 2, Random.Range(-15, 15));
+        transform.position.Set(
+            transform.position.x, 
+            Terrain.activeTerrain.SampleHeight(transform.position) + 2,
+            transform.position.z);
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyDown("space"))
+        {
+            launched = true;
+            sound.Play();
+        }
     }
 
     void FixedUpdate()
@@ -52,10 +64,13 @@ public class missileController : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.tag == "MissileTarget")
+        if (other.gameObject.tag == "MissileTarget" || other.gameObject.tag == "Ground")
         {
-            Destroy(gameObject);
             Instantiate(myExplosion, rigidbody.position, Quaternion.identity);
+            /*sound.clip = myExplodeSFX;
+            sound.Play();*/
+            
+            Destroy(gameObject);
             /*Object prefab = AssetDatabase.LoadAssetAtPath("Assets/Explosion.prefab", typeof(GameObject));
             GameObject clone = Instantiate(prefab, Vector3.zero, Quaternion.identity) as GameObject;*/
         }
