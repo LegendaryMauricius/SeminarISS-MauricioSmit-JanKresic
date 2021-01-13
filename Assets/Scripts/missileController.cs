@@ -7,6 +7,7 @@ public class missileController : MonoBehaviour
     public GameObject myExplosion;
 
     private Rigidbody rigidbody;
+    private ParticleSystem particleSystem;
     private AudioSource sound;
 
     float speed = 7;
@@ -17,6 +18,7 @@ public class missileController : MonoBehaviour
     void Start()
     {
         rigidbody = GetComponent<Rigidbody>();
+        particleSystem = GetComponent<ParticleSystem>();
         sound = gameObject.GetComponent<AudioSource>();
 
         speed = 7;
@@ -34,8 +36,7 @@ public class missileController : MonoBehaviour
     {
         if (Input.GetKeyDown("space"))
         {
-            launched = true;
-            sound.Play();
+            launch();
         }
     }
 
@@ -75,5 +76,12 @@ public class missileController : MonoBehaviour
             GameObject clone = Instantiate(prefab, Vector3.zero, Quaternion.identity) as GameObject;*/
         }
 
+    }
+
+    public void launch()
+    {
+        launched = true;
+        particleSystem.Play();
+        sound.Play();
     }
 }
