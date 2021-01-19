@@ -6,6 +6,8 @@ TagManager:
   tags:
   - MissileTarget
   - Missile
+  - Launcher
+  - Ground
   layers:
   - Default
   - TransparentFX
