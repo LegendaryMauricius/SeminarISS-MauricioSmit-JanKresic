@@ -128,17 +128,17 @@ public class UIController : MonoBehaviour
             Color.RGBToHSV(sunEveningColor, out sevH, out sevS, out sevV);
             Color.RGBToHSV(sunNoonColor, out snoH, out snoS, out snoV);
             float redness = Mathf.Abs(Mathf.Cos(sunValue));
-            float lightness = Mathf.Max(Mathf.Sin(sunValue), 0.0f);
+            float lightness = Mathf.Max(Mathf.Sin(sunValue*0.9f + 0.1f), 0.0f);
 
             SunTransform.rotation = Quaternion.AngleAxis(sunValue * Mathf.Rad2Deg, new Vector3(1, 0, 0.2f));
             Sun.intensity = lightness;
             
-            Color fogDay = Color.white;
+            Color fogDay = Color.Lerp(Color.white, Color.gray, 0.5f);
             Color fogNight = Color.black;
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Exponential;
             RenderSettings.fogDensity = fogValue * fogValue;
-            RenderSettings.fogColor = Color.Lerp(fogNight, fogDay, Mathf.Sqrt(lightness));
+            RenderSettings.fogColor = Color.Lerp(fogNight, fogDay, lightness);
 
         }
 
