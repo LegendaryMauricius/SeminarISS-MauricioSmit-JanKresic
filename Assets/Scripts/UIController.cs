@@ -17,14 +17,16 @@ public class UIController : MonoBehaviour
     };
     enum CameraMode
     {
-        Launcher,
+        Aim,
+        Gunner,
+        GunnerBinoculars,
         Missile,
         Target,
         TopDown
     };
 
     GUIStyle buttonStyleNormal, labelStyle;
-    GameObject savedMissile;
+    //GameObject savedMissile;
     bool dragging;
 
     State guiState;
@@ -32,18 +34,42 @@ public class UIController : MonoBehaviour
     float fogValue;
     float sunValue;
 
+    public Texture ScopeTexture;
+    public Texture BinocularsTexture;
+
     public Transform SunTransform;
     public Light Sun;
+    public GameObject missile;
+    public GameObject launcher;
+    public GameObject mainCamera;
+    //public Camera mainCamera;
+
+    public float fovNormal;
+    public float fovBinoculars;
+    public float launcherYaw;
+    public float launcherPitch;
+    public Vector3 GunnerOffset;// = new Vector3(1.5f, 0, 0);
+    public Vector3 AimOffset;// = new Vector3(0, 0, 0.5f);
+    public float height;
+
+    Vector3 prevGyroEuler;// = new Vector3(0, 0, 0.5f);
+
+    private static Quaternion GyroToUnity(Quaternion q)
+    {
+        return new Quaternion(q.x, q.y, -q.z, -q.w);
+    }
 
     // Start is called before the first frame update
     void Start()
     {
         guiState = State.Setup;
-        cameraMode = CameraMode.Launcher;
+        cameraMode = CameraMode.Aim;
         fogValue = 0.0f;
-        sunValue = 0.0f;
-        savedMissile = GameObject.FindGameObjectWithTag("Missile");
+        sunValue = 1.2f;
+        //savedMissile = GameObject.FindGameObjectWithTag("Missile");
         dragging = false;
+
+        prevGyroEuler = GyroToUnity(Input.gyro.attitude).eulerAngles;
         //style = new GUIStyle(GUI.skin.button);
         //GUI.skin.button.fontSize = (int) (0.06f * Mathf.Max(Screen.width, Screen.height));
         //style.
@@ -52,21 +78,24 @@ public class UIController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        float height = 30;
         float missileUp = 0.8f, missileBack = 1.5f;
 
-        GameObject camera = GameObject.FindGameObjectWithTag("MainCamera");
-        GameObject launcher = GameObject.FindGameObjectWithTag("Launcher");
+        //GameObject mainCamera = GameObject.FindGameObjectWithTag("MainCamera");
+        //Camera mainCamera = mainCameraObj.GetComponent<Camera>();
+        //Debug.Log(mainCameraObj);
+        //GameObject launcher = GameObject.FindGameObjectWithTag("Launcher");
         GameObject target = GameObject.FindGameObjectWithTag("MissileTarget");
-        GameObject missile = savedMissile;// GameObject.FindGameObjectWithTag("Missile");
+        //GameObject missile = savedMissile;// GameObject.FindGameObjectWithTag("Missile");
+        Quaternion cameraUpRot = Quaternion.Euler(-90, 0, 0);
         Vector3 missileBaseDir = new Vector3(0, 1, 0);
         Vector3 cameraBaseDir = new Vector3(0, 0, 1);
         Vector3 missileFacingDir = missile.transform.rotation * missileBaseDir;
 
+        mainCamera.GetComponent<Camera>().fieldOfView = fovNormal;
         if (guiState == State.SetMissile)
         {
-            camera.transform.rotation = Quaternion.Euler(90, 0, 0);
-            camera.transform.position = new Vector3(
+            mainCamera.transform.rotation = Quaternion.Euler(90, 0, 0);
+            mainCamera.transform.position = new Vector3(
                 launcher.transform.position.x,
                 launcher.transform.position.y + height,
                 launcher.transform.position.z
@@ -74,8 +103,8 @@ public class UIController : MonoBehaviour
         }
         else if (guiState == State.SetTank)
         {
-            camera.transform.rotation = Quaternion.Euler(90, 0, 0);
-            camera.transform.position = new Vector3(
+            mainCamera.transform.rotation = Quaternion.Euler(90, 0, 0);
+            mainCamera.transform.position = new Vector3(
                 target.transform.position.x,
                 target.transform.position.y + height,
                 target.transform.position.z
@@ -83,28 +112,51 @@ public class UIController : MonoBehaviour
         }
         else
         {
+            //mainCamera;
             switch (cameraMode)
             {
-                case CameraMode.Launcher:
-                    camera.transform.rotation = Quaternion.Euler(0, 0, 0);
-                    camera.transform.position = launcher.transform.position + new Vector3(0.8f, 0.5f, -0.7f);
+                case CameraMode.Aim:
+                    mainCamera.transform.rotation = launcher.transform.rotation * cameraUpRot;
+                    mainCamera.transform.position = launcher.transform.position + 
+                        launcher.transform.rotation * AimOffset;
+
+                    RaycastHit hit;
+                    Ray ray = new Ray(
+                        mainCamera.transform.position,
+                        launcher.transform.rotation * missileBaseDir
+                    );
+                    if (Physics.Raycast(ray, out hit))
+                    {
+                        missile.GetComponent<missileController>().targetPos = hit.point;
+                    }
+                    break; 
+                case CameraMode.Gunner:
+                    mainCamera.transform.rotation = Quaternion.Euler(0, launcherYaw, 0);
+                    mainCamera.transform.position = launcher.transform.position + 
+                        mainCamera.transform.rotation * GunnerOffset;
+                    break;
+                case CameraMode.GunnerBinoculars:
+                    mainCamera.GetComponent<Camera>().fieldOfView = fovBinoculars;
+                    mainCamera.transform.rotation = Quaternion.Euler(0, launcherYaw, 0);
+                    mainCamera.transform.position = launcher.transform.position + 
+                        mainCamera.transform.rotation * GunnerOffset;
                     break;
                 case CameraMode.Target:
-                    camera.transform.rotation = Quaternion.Euler(90, 0, 0);
-                    camera.transform.position = new Vector3(
+                    mainCamera.transform.rotation = Quaternion.Euler(90, 0, 0);
+                    mainCamera.transform.position = new Vector3(
                         target.transform.position.x,
                         target.transform.position.y + height,
                         target.transform.position.z
                     );
                     break;
                 case CameraMode.Missile:
-                    camera.transform.rotation = Quaternion.FromToRotation(cameraBaseDir, missileFacingDir);
-                    camera.transform.position = missile.transform.position - missileFacingDir* missileBack + 
-                        camera.transform.rotation * new Vector3(0, 1, 0) * missileUp;
+                    mainCamera.transform.rotation = Quaternion.FromToRotation(cameraBaseDir, missileFacingDir);
+                    mainCamera.transform.position = missile.transform.position - missileFacingDir* missileBack + 
+                        mainCamera.transform.rotation * new Vector3(0, 1, 0) * missileUp;
                     break;
                 case CameraMode.TopDown:
-                    camera.transform.rotation = Quaternion.Euler(90, 0, 0);
-                    camera.transform.position = new Vector3(
+                    mainCamera.transform.rotation = Quaternion.Euler(90, 0, 0);
+                    mainCamera.transform.position = new Vector3(
                         missile.transform.position.x,
                         missile.transform.position.y + height,
                         missile.transform.position.z
@@ -143,10 +195,20 @@ public class UIController : MonoBehaviour
         }
 
         float adjustSpeed = 800.0f / Mathf.Max(Screen.width, Screen.height);
+        float aimSpeed = 800.0f / Mathf.Max(Screen.width, Screen.height);
 
         if (dragging)
         {
-            if (guiState == State.SetMissile)
+            if ((guiState == State.Ready || guiState == State.Launched) && 
+                (cameraMode == CameraMode.Aim || cameraMode == CameraMode.Gunner || cameraMode == CameraMode.GunnerBinoculars))
+            {
+                Vector3 gyroEuler = GyroToUnity(Input.gyro.attitude).eulerAngles;
+                Debug.Log(gyroEuler);
+                launcherYaw -= aimSpeed * Input.GetAxis("Mouse X") + gyroEuler.y - prevGyroEuler.y;//Input.gyro.rotationRateUnbiased.y*Mathf.Rad2Deg/2;
+                launcherPitch += aimSpeed * Input.GetAxis("Mouse Y") + gyroEuler.x - prevGyroEuler.x;//Input.gyro.rotationRateUnbiased.x*Mathf.Rad2Deg/2;
+                prevGyroEuler = gyroEuler;
+            }
+            else if (guiState == State.SetMissile)
             {
                 launcher.transform.position += new Vector3(
                     -adjustSpeed * Input.GetAxis("Mouse X"),
@@ -192,9 +254,14 @@ public class UIController : MonoBehaviour
 
                 //target.transform.position += normal * 1.5f;
                 target.transform.rotation = Quaternion.FromToRotation(new Vector3(0, -1, 0), normal);
+                target.GetComponent<TankTargetController>().StartingPos = target.transform.position;
+                target.GetComponent<TankTargetController>().StartingRot = target.transform.rotation;
             }
         }
-        if (Input.GetMouseButtonDown(0) && (guiState == State.SetMissile || guiState == State.SetTank))
+        if (Input.GetMouseButtonDown(0) && 
+            (guiState == State.SetMissile || guiState == State.SetTank || 
+            ((guiState == State.Ready || guiState == State.Launched) && 
+            (cameraMode == CameraMode.Aim || cameraMode == CameraMode.Gunner || cameraMode == CameraMode.GunnerBinoculars))))
         {
             dragging = true;
         }
@@ -203,11 +270,30 @@ public class UIController : MonoBehaviour
             dragging = false;
         }
 
+        if (guiState == State.Setup || guiState == State.SetMissile || guiState == State.SetTank)
+        {
+            launcher.transform.position = new Vector3(
+                launcher.transform.position.x,
+                Terrain.activeTerrain.SampleHeight(launcher.transform.position) + 0.5f,
+                launcher.transform.position.z
+            );
+            target.transform.position = new Vector3(
+                target.transform.position.x,
+                Terrain.activeTerrain.SampleHeight(target.transform.position) + 1.0f,
+                target.transform.position.z
+            );
+            target.GetComponent<TankTargetController>().reset();
+        }
+
+        launcher.transform.rotation = Quaternion.Euler(launcherPitch, launcherYaw, 0);
+        target.GetComponent<TankTargetController>().m_Target = launcher.transform.position;
+
     }
 
     void OnGUI()
     {
         //GUI.skin.button.fontSize = (int)(0.06f * Mathf.Max(Screen.width, Screen.height));
+        GameObject target = GameObject.FindGameObjectWithTag("MissileTarget");
         buttonStyleNormal = new GUIStyle(GUI.skin.button);
         buttonStyleNormal.fontSize = (int)(0.03f * Mathf.Max(Screen.width, Screen.height));
         labelStyle = new GUIStyle(GUI.skin.label);
@@ -215,9 +301,10 @@ public class UIController : MonoBehaviour
 
         if (guiState == State.Setup)
         {
-            if (GUI.Button(leftButtonRect(1), "Start", buttonStyleNormal))
+            if (GUI.Button(leftButtonRect(1), "Start sim.", buttonStyleNormal))
             {
                 guiState = State.Ready;
+                target.GetComponent<TankTargetController>().move();
             }
             if (GUI.Button(leftButtonRect(2), "Set missile", buttonStyleNormal))
             {
@@ -232,23 +319,39 @@ public class UIController : MonoBehaviour
             GUI.Label(leftButtonRect(5), "Time of day:", labelStyle);
             sunValue = GUI.HorizontalSlider(leftSliderRect(5), sunValue, 0.0f, 2 * 3.141592f);
         }
-        if (guiState == State.SetMissile || guiState == State.SetTank)
+        else if (guiState == State.SetMissile || guiState == State.SetTank)
         {
             if (GUI.Button(leftButtonRect(1), "OK", buttonStyleNormal))
             {
                 guiState = State.Setup;
             }
         }
+        else 
+        {
+            if (cameraMode == CameraMode.GunnerBinoculars)
+            {
+                GUI.DrawTexture(overlayRect(), BinocularsTexture);
+            }
+            else if (cameraMode == CameraMode.Aim)
+            {
+                GUI.DrawTexture(overlayRect(), ScopeTexture);
+            }
+        }
+
         if (guiState == State.Ready)
         {
-            if (GUI.Button(leftButtonRect(1), "Launch", buttonStyleNormal))
+            if (cameraMode == CameraMode.Aim)
             {
-                savedMissile.GetComponent<missileController>().launch();
-                guiState = State.Launched;
+                if (GUI.Button(leftButtonRect(1), "Launch", buttonStyleNormal))
+                {
+                    missile.GetComponent<missileController>().launch();
+                    guiState = State.Launched;
+                }
             }
-            if (GUI.Button(leftButtonRect(2), "Setup", buttonStyleNormal))
+            if (GUI.Button(leftButtonRect(3), "Sim. setup", buttonStyleNormal))
             {
                 guiState = State.Setup;
+                //target.GetComponent<TankTargetController>().reset();
             }
         }
         if (guiState == State.Launched)
@@ -258,26 +361,36 @@ public class UIController : MonoBehaviour
                 //SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
                 //GameObject.FindGameObjectWithTag("Missile").GetComponent<missileController>().launch();
 
-                savedMissile.GetComponent<missileController>().reset();
+                missile.GetComponent<missileController>().reset();
+                target.GetComponent<TankTargetController>().reset();
+                target.GetComponent<TankTargetController>().move();
                 guiState = State.Ready;
             }
         }
 
         if (guiState == State.Ready || guiState == State.Launched)
         {
-            if (GUI.Button(rightButtonRect(1), "Launcher", buttonStyleNormal))
+            if (GUI.Button(rightButtonRect(1), "Aim", buttonStyleNormal))
             {
-                cameraMode = CameraMode.Launcher;
+                cameraMode = CameraMode.Aim;
             }
-            if (GUI.Button(rightButtonRect(2), "Missile", buttonStyleNormal))
+            if (GUI.Button(rightButtonRect(2), "Gunner", buttonStyleNormal))
+            {
+                cameraMode = CameraMode.Gunner;
+            }
+            if (GUI.Button(rightButtonRect(3), "Gunner binoculars", buttonStyleNormal))
+            {
+                cameraMode = CameraMode.GunnerBinoculars;
+            }
+            if (GUI.Button(rightButtonRect(5), "Sim:Missile", buttonStyleNormal))
             {
                 cameraMode = CameraMode.Missile;
             }
-            if (GUI.Button(rightButtonRect(3), "Target", buttonStyleNormal))
+            if (GUI.Button(rightButtonRect(6), "Sim:Target", buttonStyleNormal))
             {
                 cameraMode = CameraMode.Target;
             }
-            if (GUI.Button(rightButtonRect(4), "Top-down", buttonStyleNormal))
+            if (GUI.Button(rightButtonRect(7), "Sim:Top-down", buttonStyleNormal))
             {
                 cameraMode = CameraMode.TopDown;
             }
@@ -287,20 +400,26 @@ public class UIController : MonoBehaviour
     Rect leftButtonRect(int index)
     {
         float sizeFactor = Mathf.Max(Screen.width, Screen.height);
-        float w = 0.18f * sizeFactor, h = 0.05f * sizeFactor, s = 0.02f * sizeFactor;
+        float w = 0.18f * sizeFactor, h = 0.04f * sizeFactor, s = 0.01f * sizeFactor;
         return new Rect(s, s + (index-1)*(h+s), w, h);
     }
     Rect leftSliderRect(int index)
     {
         float sizeFactor = Mathf.Max(Screen.width, Screen.height);
-        float w = 0.3f * sizeFactor, h = 0.05f * sizeFactor, s = 0.02f * sizeFactor;
+        float w = 0.3f * sizeFactor, h = 0.04f * sizeFactor, s = 0.01f * sizeFactor;
         return new Rect(s, s + (index - 1) * (h + s) + h/3*2, w, h/2);
     }
 
     Rect rightButtonRect(int index)
     {
         float sizeFactor = Mathf.Max(Screen.width, Screen.height);
-        float w = 0.18f * sizeFactor, h = 0.05f * sizeFactor, s = 0.02f * sizeFactor;
+        float w = 0.22f * sizeFactor, h = 0.04f * sizeFactor, s = 0.01f * sizeFactor;
         return new Rect(Screen.width - s - w, s + (index - 1) * (h + s), w, h);
+    }
+
+    Rect overlayRect()
+    {
+        float size = Mathf.Max(Screen.width, Screen.height);
+        return new Rect(Screen.width/2 - size/2, Screen.height/2 - size/2, size, size);
     }
 }

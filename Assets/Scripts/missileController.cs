@@ -5,6 +5,7 @@ using UnityEngine;
 public class missileController : MonoBehaviour
 {
     public GameObject myExplosion;
+    public Vector3 targetPos;
 
     private Rigidbody rigidbody;
     private ParticleSystem particleSystem;
@@ -47,7 +48,7 @@ public class missileController : MonoBehaviour
     {
         if (launched)
         {
-            Vector3 targetPos = GameObject.FindGameObjectWithTag("MissileTarget").transform.position;
+            //Vector3 targetPos = GameObject.FindGameObjectWithTag("MissileTarget").transform.position;
             Vector3 down = new Vector3(0, -1, 0);
 
             // calc new rotation
@@ -103,6 +104,7 @@ public class missileController : MonoBehaviour
             //Destroy(gameObject);
             launched = false;
             gameObject.SetActive(false);
+            other.gameObject.GetComponent<TankTargetController>().stop();
             /*Object prefab = AssetDatabase.LoadAssetAtPath("Assets/Explosion.prefab", typeof(GameObject));
             GameObject clone = Instantiate(prefab, Vector3.zero, Quaternion.identity) as GameObject;*/
         }
