@@ -116,6 +116,7 @@ public class UIController : MonoBehaviour
             switch (cameraMode)
             {
                 case CameraMode.Aim:
+                    mainCamera.GetComponent<Camera>().fieldOfView = fovBinoculars;
                     mainCamera.transform.rotation = launcher.transform.rotation * cameraUpRot;
                     mainCamera.transform.position = launcher.transform.position + 
                         launcher.transform.rotation * AimOffset;
@@ -195,18 +196,16 @@ public class UIController : MonoBehaviour
         }
 
         float adjustSpeed = 800.0f / Mathf.Max(Screen.width, Screen.height);
-        float aimSpeed = 800.0f / Mathf.Max(Screen.width, Screen.height);
+        float aimSpeed = 600.0f / Mathf.Max(Screen.width, Screen.height);
 
         if (dragging)
         {
             if ((guiState == State.Ready || guiState == State.Launched) && 
                 (cameraMode == CameraMode.Aim || cameraMode == CameraMode.Gunner || cameraMode == CameraMode.GunnerBinoculars))
             {
-                Vector3 gyroEuler = GyroToUnity(Input.gyro.attitude).eulerAngles;
-                Debug.Log(gyroEuler);
-                launcherYaw -= aimSpeed * Input.GetAxis("Mouse X") + gyroEuler.y - prevGyroEuler.y;//Input.gyro.rotationRateUnbiased.y*Mathf.Rad2Deg/2;
-                launcherPitch += aimSpeed * Input.GetAxis("Mouse Y") + gyroEuler.x - prevGyroEuler.x;//Input.gyro.rotationRateUnbiased.x*Mathf.Rad2Deg/2;
-                prevGyroEuler = gyroEuler;
+                launcherYaw -= aimSpeed * Input.GetAxis("Mouse X");
+                launcherPitch += aimSpeed * Input.GetAxis("Mouse Y");
+                launcher.transform.rotation = Quaternion.Euler(launcherPitch, launcherYaw, 0);
             }
             else if (guiState == State.SetMissile)
             {
@@ -250,7 +249,7 @@ public class UIController : MonoBehaviour
                     1
                 );
                 Vector3 normal = Vector3.Cross(xV - cV, zV - cV).normalized;
-                Debug.Log("Normal:" + normal);
+                //Debug.Log("Normal:" + normal);
 
                 //target.transform.position += normal * 1.5f;
                 target.transform.rotation = Quaternion.FromToRotation(new Vector3(0, -1, 0), normal);
@@ -301,18 +300,18 @@ public class UIController : MonoBehaviour
 
         if (guiState == State.Setup)
         {
-            if (GUI.Button(leftButtonRect(1), "Start sim.", buttonStyleNormal))
-            {
-                guiState = State.Ready;
-                target.GetComponent<TankTargetController>().move();
-            }
-            if (GUI.Button(leftButtonRect(2), "Set missile", buttonStyleNormal))
+            if (GUI.Button(leftButtonRect(1), "Set missile", buttonStyleNormal))
             {
                 guiState = State.SetMissile;
             }
-            if (GUI.Button(leftButtonRect(3), "Set tank", buttonStyleNormal))
+            if (GUI.Button(leftButtonRect(2), "Set tank", buttonStyleNormal))
             {
                 guiState = State.SetTank;
+            }
+            if (GUI.Button(leftButtonRect(3), "Start sim.", buttonStyleNormal))
+            {
+                guiState = State.Ready;
+                target.GetComponent<TankTargetController>().move();
             }
             GUI.Label(leftButtonRect(4), "Fog strength:", labelStyle);
             fogValue = GUI.HorizontalSlider(leftSliderRect(4), fogValue, 0.0f, 1.0f);
@@ -348,15 +347,15 @@ public class UIController : MonoBehaviour
                     guiState = State.Launched;
                 }
             }
-            if (GUI.Button(leftButtonRect(3), "Sim. setup", buttonStyleNormal))
+            if (GUI.Button(leftButtonRect(4), "Sim. setup", buttonStyleNormal))
             {
                 guiState = State.Setup;
                 //target.GetComponent<TankTargetController>().reset();
             }
         }
-        if (guiState == State.Launched)
+        if (guiState == State.Launched || guiState == State.Ready)
         {
-            if (GUI.Button(leftButtonRect(1), "Restart", buttonStyleNormal))
+            if (GUI.Button(leftButtonRect(3), "Restart", buttonStyleNormal))
             {
                 //SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
                 //GameObject.FindGameObjectWithTag("Missile").GetComponent<missileController>().launch();
@@ -370,12 +369,10 @@ public class UIController : MonoBehaviour
 
         if (guiState == State.Ready || guiState == State.Launched)
         {
-            if (GUI.Button(rightButtonRect(1), "Aim", buttonStyleNormal))
-            {
+            if (GUI.Button(rightButtonRect(1), "Aim", buttonStyleNormal)) {
                 cameraMode = CameraMode.Aim;
             }
-            if (GUI.Button(rightButtonRect(2), "Gunner", buttonStyleNormal))
-            {
+            if (GUI.Button(rightButtonRect(2), "Gunner", buttonStyleNormal)) {
                 cameraMode = CameraMode.Gunner;
             }
             if (GUI.Button(rightButtonRect(3), "Gunner binoculars", buttonStyleNormal))

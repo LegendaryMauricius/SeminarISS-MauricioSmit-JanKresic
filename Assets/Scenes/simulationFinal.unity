@@ -177,7 +177,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 1
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!136 &230939607
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -5253,7 +5253,7 @@ CapsuleCollider:
   m_GameObject: {fileID: 384272806}
   m_Material: {fileID: 0}
   m_IsTrigger: 0
-  m_Enabled: 1
+  m_Enabled: 0
   m_Radius: 0.5000001
   m_Height: 2
   m_Direction: 1
@@ -10396,7 +10396,7 @@ MonoBehaviour:
   fovNormal: 60
   fovBinoculars: 15
   launcherYaw: 180
-  launcherPitch: 45
+  launcherPitch: 75
   GunnerOffset: {x: -0.7, y: 0.5, z: -0.4}
   AimOffset: {x: -0.4, y: 0.7, z: -0.3}
   height: 60
@@ -15370,7 +15370,7 @@ Rigidbody:
   serializedVersion: 2
   m_Mass: 1000
   m_Drag: 0.2
-  m_AngularDrag: 0.9
+  m_AngularDrag: 3
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0

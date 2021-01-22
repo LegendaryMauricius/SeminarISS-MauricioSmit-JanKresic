@@ -48,34 +48,30 @@ public class missileController : MonoBehaviour
     {
         if (launched)
         {
-            //Vector3 targetPos = GameObject.FindGameObjectWithTag("MissileTarget").transform.position;
-            Vector3 down = new Vector3(0, -1, 0);
+            Vector3 baseDir = new Vector3(0, 1, 0);// smjer sa pocetnom rotacijom
+            Vector3 targetDir = targetPos - transform.position;// smjer prema meti
+            Vector3 currentDir = transform.rotation * baseDir;// trenutni smjer
 
-            // calc new rotation
-            Vector3 baseDir = new Vector3(0, 1, 0);
-            Vector3 targetDir = targetPos - transform.position;
-            //Debug.Log("TargetPos:" + targetPos + "  TargetDir:" + targetDir);
-            Vector3 currentDir = transform.rotation * baseDir;
+            // Izracunajmo novi smjer zakrenut za brzinu okretanja
+            float rotateSpeedFactor = rigidbody.velocity.magnitude / maxSpeed;
             Vector3 newDir = Vector3.RotateTowards(
-                currentDir, targetDir,
-                rotateSpeed * rigidbody.velocity.magnitude / maxSpeed * Time.deltaTime, 2
+                current: currentDir,
+                target: targetDir,
+                maxRadiansDelta: rotateSpeed * rotateSpeedFactor * Time.deltaTime, 
+                maxMagnitudeDelta: 2
             );
 
+            // Prevedimo smjre u rotaciju
             rigidbody.rotation = Quaternion.FromToRotation(baseDir, newDir);
-            //rigidbody.angularVelocity = Quaternion.FromToRotation(currentDir, newDir).eulerAngles;
+
+            // Sprijecimo physics engine da mijenja rotaciju
+            rigidbody.freezeRotation = false;
             rigidbody.angularVelocity = new Vector3(0, 0, 0);
 
-            speed += acceleration * Time.deltaTime;
-            if (speed > maxSpeed) speed = maxSpeed;
-
-            // move
-            rigidbody.freezeRotation = false;
-            //rigidbody.position += transform.rotation * baseDir * speed * Time.deltaTime;
-            //rigidbody.velocity = rigidbody.rotation * baseDir * speed;
-            //rigidbody.velocity += down * gravity * Time.deltaTime;
-            rigidbody.velocity -= rigidbody.velocity * drag * Time.deltaTime;
-            rigidbody.velocity += rigidbody.rotation * baseDir * acceleration * Time.deltaTime;
-            if (rigidbody.velocity.magnitude > maxSpeed)
+            // Promjenimo brzinu
+            rigidbody.velocity -= rigidbody.velocity * drag * Time.deltaTime;// otpor zraka
+            rigidbody.velocity += newDir * acceleration * Time.deltaTime;// ubrzanje
+            if (rigidbody.velocity.magnitude > maxSpeed)// Ogranicimo brzinu
                 rigidbody.velocity = rigidbody.velocity.normalized * maxSpeed;
         }
         else

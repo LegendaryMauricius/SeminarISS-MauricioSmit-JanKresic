@@ -31,23 +31,32 @@ public class TankTargetController : MonoBehaviour
             if ((m_Target - rigidbody.transform.position).magnitude > 0.1f) 
             {
                 Vector3 baseDir = new Vector3(0, 0, 1);
-                float yawDif = -Quaternion.FromToRotation(
-                    rigidbody.rotation * baseDir,
-                    (m_Target - rigidbody.position).normalized
-                ).eulerAngles.y;
-
-                //Debug.Log("Rot: "+yawDif);
-                if (Mathf.Abs(yawDif) < m_RotThreshold)
-                    yawDif = 0;
-                
-                rigidbody.angularVelocity = new Vector3(
-                    rigidbody.angularVelocity.x,
-                    Mathf.Min(m_RotSpeed, Mathf.Max(-m_RotSpeed, yawDif)) * Mathf.Deg2Rad,
-                    rigidbody.angularVelocity.z
+                Vector3 eulerRot = new Vector3(
+                    rigidbody.rotation.eulerAngles.x < 180? rigidbody.rotation.eulerAngles.x : rigidbody.rotation.eulerAngles.x - 360,
+                    rigidbody.rotation.eulerAngles.y < 180? rigidbody.rotation.eulerAngles.y : rigidbody.rotation.eulerAngles.y - 360,
+                    rigidbody.rotation.eulerAngles.z < 180? rigidbody.rotation.eulerAngles.z : rigidbody.rotation.eulerAngles.z - 360
                 );
-                //Vector3 targetVel = (m_Target - GetComponent<Transform>().position).normalized * m_Speed;
-                Vector3 targetVel = rigidbody.rotation * baseDir * m_Speed;
-                rigidbody.velocity = new Vector3(targetVel.x, rigidbody.velocity.y, targetVel.z);
+
+                    Debug.Log("Euler: "+eulerRot);
+                if (Mathf.Abs(eulerRot.z) < 45 && Mathf.Abs(eulerRot.x) < 75)
+                {
+                    float yawDif =  Quaternion.FromToRotation(
+                        rigidbody.rotation * baseDir,
+                        (m_Target - rigidbody.position).normalized
+                    ).eulerAngles.y;
+
+                    Debug.Log("Rot: "+yawDif);
+                    if (Mathf.Abs(yawDif) < m_RotThreshold)
+                        yawDif = 0;
+                    
+                    rigidbody.angularVelocity = new Vector3(
+                        rigidbody.angularVelocity.x,
+                        Mathf.Min(m_RotSpeed, Mathf.Max(-m_RotSpeed, yawDif)) * Mathf.Deg2Rad,
+                        rigidbody.angularVelocity.z
+                    );
+                    Vector3 targetVel = rigidbody.rotation * baseDir * m_Speed;
+                    rigidbody.velocity = new Vector3(targetVel.x, rigidbody.velocity.y, targetVel.z);
+                }
             }
         }
         else
